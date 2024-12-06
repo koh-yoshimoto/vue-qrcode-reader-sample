@@ -21,7 +21,7 @@
     ></QrcodeStream>
 
     <div class="result">
-      <div class="result-title">Detected QR codes</div>
+      <div>Detected QR codes</div>
       <ul>
         <li v-for="(code, index) in result" :key="index">
           [{{ code.cornerPoint.x }}]: {{ code.rawValue }}
@@ -29,15 +29,15 @@
       </ul>
     </div>
     <div class="result">
-    <div class="result-title">Result</div>
-			<div v-if="carType" class="result-title">
-				Car Type: {{ carType }}
+			<div>Result</div>
+			<div v-if="carType">
+				[Car Type] {{ carType }}
 			</div>
 			<div v-if="qr2" class="decoded-value">
-				QR2: {{ qr2 }}
+				[QR2] {{ qr2 }}
 			</div>
 			<div v-if="qr3" class="decoded-value">
-				QR3: {{ qr3 }}
+				[QR3] {{ qr3 }}
 			</div>
   </div>
     </div>
@@ -141,7 +141,10 @@ export default defineComponent({
             paused.value = true;
 						qr2.value = result.value[1].rawValue + result.value[0].rawValue;
 						qr3.value = result.value[4].rawValue + result.value[3].rawValue + result.value[2].rawValue;
-
+						carType.value = qr3.value.split("/")[5];
+						console.log("QR2: " + qr2.value);
+						console.log("QR3: " + qr3.value);
+						console.log("Car Type: " + carType.value);
           }
         }
       }
@@ -177,7 +180,6 @@ li {
 }
 
 .decoded-value {
-	font-size: 1.0rem;
 	margin: 4px 0;
 	text-align: left;
 }
