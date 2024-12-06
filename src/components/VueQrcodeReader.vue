@@ -14,7 +14,7 @@
 		<div class="result">
 			<div class="result-title">Detected QR codes</div>
 				<ul>
-					<li v-for="code,index in result" :key="index">{{index+1}}: {{ code }}</li>
+					<li v-for="code,index in result" :key="index">[{{code.cornerPoint.x}}]: {{code.rawValue}}</li>
 				</ul>
 		</div>
 	</div>
@@ -31,6 +31,7 @@ export default defineComponent({
   },
   setup() {
     const result = ref([]);
+    const position = ref([]);
 		const selectedConstraints = ref({ facingMode: 'environment' })
 		const defaultConstraintOptions = [
 			{ label: 'rear camera', constraints: { facingMode: 'environment' } },
@@ -80,18 +81,33 @@ export default defineComponent({
 					boundingBox: { x, y, width, height }
 				} = detectedCode
 
-				ctx.lineWidth = 2
+				ctx.lineWidth = 4
 				ctx.strokeStyle = '#007bff'
 				ctx.strokeRect(x, y, width, height)
 			}
 		}
 
     const onDetect = (detectedCodes) => {
-				console.log(detectedCodes)
 				//重複しないrawValueをresultに追加
 				for (let i = 0; i < detectedCodes.length; i++) {
-					if (!result.value.includes(detectedCodes[i].rawValue)) {
-						result.value.push(detectedCodes[i].rawValue)
+					const exists = result.value.some((item) => item.rawValue === detectedCodes[i].rawValue)
+					if (!exists) {
+						result.value.push({
+							"rawValue": detectedCodes[i].rawValue,
+							"cornerPoint": {
+								"x": Math.round(detectedCodes[i].cornerPoints[0].x),
+								"y": Math.round(detectedCodes[i].cornerPoints[0].y)
+							}
+						})
+						//resultをcornerPoints[0]のx座標で降順ソート
+						result.value.sort((a, b) => {
+							if (a.cornerPoint.x < b.cornerPoint.x) {
+								return 1;
+							} else {
+								return -1;
+							}
+						})
+						console.log(result.value)
 					}
 				}
     }
