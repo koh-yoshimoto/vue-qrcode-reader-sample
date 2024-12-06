@@ -1,14 +1,23 @@
 <template>
   <div>
+    <select v-model="selectedConstraints">
+      <option
+        v-for="option in constraintOptions"
+        :key="option.label"
+        :value="option.constraints"
+      >
+        {{ option.label }}
+      </option>
+    </select>
     <div>Please scan your QR codes...</div>
-    <QrcodeStream @detect="onDetect" :formats="['qr_code']" :track="paintBoundingBox"></QrcodeStream>
+    <QrcodeStream :constraints="selectedConstraints" @detect="onDetect" :formats="['qr_code']" :track="paintBoundingBox" @camera-on="onCameraReady"></QrcodeStream>
 		<div class="result">
 			<div class="result-title">Detected QR codes</div>
-			<ul>
-				<li v-for="code,index in result" :key="index">{{index+1}}: {{ code.rawValue }}</li>
-			</ul>
+				<ul>
+					<li v-for="code,index in result" :key="index">{{index+1}}: {{ code }}</li>
+				</ul>
 		</div>
-  </div>
+	</div>
 </template>
 
 <script>
@@ -22,8 +31,31 @@ export default defineComponent({
   },
   setup() {
     const result = ref([]);
+		const selectedConstraints = ref({ facingMode: 'environment' })
+		const defaultConstraintOptions = [
+			{ label: 'rear camera', constraints: { facingMode: 'environment' } },
+			{ label: 'front camera', constraints: { facingMode: 'user' } }
+		]
+		const constraintOptions = ref(defaultConstraintOptions)
 
     console.log("setup...");
+
+		const onCameraReady = async() => {
+			// NOTE: on iOS we can't invoke `enumerateDevices` before the user has given
+			// camera access permission. `QrcodeStream` internally takes care of
+			// requesting the permissions. The `camera-on` event should guarantee that this
+			// has happened.
+			const devices = await navigator.mediaDevices.enumerateDevices()
+			const videoDevices = devices.filter(({ kind }) => kind === 'videoinput')
+
+			constraintOptions.value = [
+				...defaultConstraintOptions,
+				...videoDevices.map(({ deviceId, label }) => ({
+					label: `${label} (ID: ${deviceId})`,
+					constraints: { deviceId }
+				}))
+			]
+		}
 
 		const paintOutline = (detectedCodes, ctx) => {
 			for (const detectedCode of detectedCodes) {
@@ -55,14 +87,22 @@ export default defineComponent({
 		}
 
     const onDetect = (detectedCodes) => {
-      result.value = detectedCodes
+				console.log(detectedCodes)
+				//重複しないrawValueをresultに追加
+				for (let i = 0; i < detectedCodes.length; i++) {
+					if (!result.value.includes(detectedCodes[i].rawValue)) {
+						result.value.push(detectedCodes[i].rawValue)
+					}
+				}
     }
 
     return {
       result,
       onDetect,
       paintOutline,
-			paintBoundingBox
+			paintBoundingBox,
+			constraintOptions,
+      onCameraReady,
     };
   },
 });
